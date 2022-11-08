@@ -37,7 +37,13 @@ async function run(){
             const query = { _id: ObjectId(id) }
             const course = await lessonCollection.findOne(query)
             res.send(course)
+        });
+        app.put('/addService', async (req, res) => {
+            const service = req.body;
+            const result = await lessonCollection.insertOne(service)
+            res.send(result);
         })
+
     }
     finally {
    
