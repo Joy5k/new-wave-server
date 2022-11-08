@@ -23,8 +23,14 @@ async function run(){
         app.get('/lesson', async(req, res) => {
             const query = {}
             const cursor = lessonCollection.find(query).limit(3);
-            const services = await cursor.toArray();
-            res.send(services);
+            const courses = await cursor.toArray();
+            res.send(courses);
+        });
+        app.get('/lessons', async(req, res) => {
+            const query = {}
+            const cursor = lessonCollection.find(query);
+            const courses = await cursor.toArray();
+            res.send(courses);
         });
     }
     finally {
