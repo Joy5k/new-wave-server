@@ -20,6 +20,7 @@ app.get('/', (req, res) => {
 async function run(){
     try {
         const lessonCollection = client.db('newWaveDB').collection('lesson');
+        const reviewCollection = client.db('newWaveDB').collection('reviews')
         app.get('/lesson', async(req, res) => {
             const query = {}
             const cursor = lessonCollection.find(query).limit(3);
@@ -38,12 +39,51 @@ async function run(){
             const course = await lessonCollection.findOne(query)
             res.send(course)
         });
+    
         app.put('/addService', async (req, res) => {
             const service = req.body;
             const result = await lessonCollection.insertOne(service)
             res.send(result);
         })
+//add review
 
+        app.post('/addReview', async (req, res) => {
+            const review = req.body;
+            console.log(review)
+            const result = await reviewCollection.insertOne(review)
+            res.send(result);
+        })
+
+
+
+        
+        app.get('/reviews/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = {id}
+            // console.log(query)
+            const cursor = reviewCollection.find(query);
+            const courses = await cursor.toArray();
+            res.send(courses);
+        });
+ 
+    //  get my all reviews
+        
+        
+        
+      
+//delete my review
+        
+        
+        
+        // get specific  cart's review;
+
+        app.get('/allreviews', async(req, res) => {
+            const query = {}
+            const cursor = reviewCollection.find(query);
+            const courses = await cursor.toArray();
+            res.send(courses);
+        });
+      
     }
     finally {
    
