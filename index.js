@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 5000;
@@ -14,14 +15,36 @@ const uri="mongodb://localhost:27017"
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
 
-app.get('/', (req, res) => {
-    res.send('Assignment Server is Running')
-})
+function verifyJWT(req, res, next) {
+    const authHeaders = req.headers.authorization;
+    if (!authHeaders) {
+      return  res.status(401).send({ message: 'unauthorize access.' })
+        
+    }
+    const token = authHeaders.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+        if (err) {
+          return  res.status(403).send({message:'unauthorize access'})
+        }
+        req.decoded = decoded;
+        next();
+    })
+}
+
 async function run(){
     try {
         const lessonCollection = client.db('newWaveDB').collection('lesson');
         const reviewCollection = client.db('newWaveDB').collection('reviews')
-        app.get('/lesson', async(req, res) => {
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+          const token=jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn:'7d'})
+      res.send({token})
+        })
+        app.get('/', (req, res) => {
+            res.send('Assignment Server is Running')
+        })
+      
+        app.get('/lesson', async (req, res) => {
             const query = {}
             const cursor = lessonCollection.find(query).limit(3);
             const courses = await cursor.toArray();
@@ -47,9 +70,8 @@ async function run(){
         })
 //add review
 
-        app.post('/addReview', async (req, res) => {
+        app.post('/addReview',verifyJWT, async (req, res) => {
             const review = req.body;
-            console.log(review)
             const result = await reviewCollection.insertOne(review)
             res.send(result);
         })
@@ -60,7 +82,6 @@ async function run(){
         app.get('/reviews/:id', async (req, res) => {
             const id = req.params.id;
             const query = {id}
-            // console.log(query)
             const cursor = reviewCollection.find(query);
             const courses = await cursor.toArray();
             res.send(courses);
@@ -70,7 +91,12 @@ async function run(){
         
   
 
-   app.get('/myreviews', async(req, res) => {
+        app.get('/myreviews',verifyJWT, async (req, res) => {
+            const decoded = req.decoded;
+            console.log(decoded)
+            if (decoded.email !== req.query.email) {
+                res.status(403).send({message:'unauthorize access'})
+            }
             let query = {}
             if (req.query.email) {
                 query = {
@@ -84,7 +110,7 @@ async function run(){
         
       
 //delete my review
-app.delete('/myreviews/:id', async(req, res) => {
+app.delete('/myreviews/:id',verifyJWT, async(req, res) => {
     const id = req.params.id;
     const query = { _id: ObjectId(id) }
     const result = await reviewCollection.deleteOne(query)
